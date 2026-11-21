@@ -58,8 +58,9 @@ type Validator struct {
 	// slice will disable aud checking.
 	expectedAud []string
 
-	// expectAllAud specifies whether all expected audiences must be present in
-	// the token. If false, only one of the expected audiences must be present.
+	// expectAllAud specifies whether the audiences in the token must match the
+	// expected audiences exactly. If false, it is sufficient that one of the
+	// expected audiences is present in the token.
 	expectAllAud bool
 
 	// expectedIss contains the issuer this token expects. Supplying an empty
@@ -243,7 +244,7 @@ func (v *Validator) verifyAudience(claims Claims, cmp []string, expectAllAud boo
 	// Check that aud exists and is not empty. We only require the aud claim
 	// if we expect at least one audience to be present.
 	if len(aud) == 0 || len(aud) == 1 && aud[0] == "" {
-		required := len(v.expectedAud) > 0
+		required := len(cmp) > 0
 		return errorIfRequired(required, "aud")
 	}
 
@@ -258,10 +259,17 @@ func (v *Validator) verifyAudience(claims Claims, cmp []string, expectAllAud boo
 		return ErrTokenInvalidAudience
 	}
 
-	// Note that we are looping cmp here to ensure that all expected audiences
-	// are present in the aud claim.
+	// For an exact match, the audience sets have to contain the same
+	// elements. Checking only one direction would allow the token to either
+	// omit an expected audience or carry additional, unexpected audiences.
 	for _, a := range cmp {
 		if !slices.Contains(aud, a) {
+			return ErrTokenInvalidAudience
+		}
+	}
+
+	for _, a := range aud {
+		if !slices.Contains(cmp, a) {
 			return ErrTokenInvalidAudience
 		}
 	}

@@ -386,6 +386,26 @@ func Test_Validator_verifyAudience(t *testing.T) {
 			wantErr: ErrTokenRequiredClaimMissing,
 		},
 		{
+			name:   "fail without audience based on the cmp argument rather than validator state",
+			fields: fields{expectedAud: nil},
+			args: args{
+				claims:       MapClaims{},
+				cmp:          []string{"example.com"},
+				expectAllAud: false,
+			},
+			wantErr: ErrTokenRequiredClaimMissing,
+		},
+		{
+			name:   "good without audience when the cmp argument is empty",
+			fields: fields{expectedAud: []string{"example.com"}},
+			args: args{
+				claims:       MapClaims{},
+				cmp:          nil,
+				expectAllAud: false,
+			},
+			wantErr: nil,
+		},
+		{
 			name:   "good when audience matches",
 			fields: fields{expectedAud: []string{"example.com"}},
 			args: args{
@@ -396,10 +416,20 @@ func Test_Validator_verifyAudience(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:   "fail when audience matches with one value",
+			name:   "good when one of the audiences matches",
 			fields: fields{expectedAud: []string{"example.org", "example.com"}},
 			args: args{
 				claims:       RegisteredClaims{Audience: ClaimStrings{"example.com"}},
+				cmp:          []string{"example.org", "example.com"},
+				expectAllAud: false,
+			},
+			wantErr: nil,
+		},
+		{
+			name:   "good when one of the token audiences matches",
+			fields: fields{expectedAud: []string{"example.org", "example.com"}},
+			args: args{
+				claims:       RegisteredClaims{Audience: ClaimStrings{"example.com", "example.net"}},
 				cmp:          []string{"example.org", "example.com"},
 				expectAllAud: false,
 			},
@@ -414,6 +444,26 @@ func Test_Validator_verifyAudience(t *testing.T) {
 				expectAllAud: true,
 			},
 			wantErr: nil,
+		},
+		{
+			name:   "fail when all audiences match but one is missing in the token",
+			fields: fields{expectedAud: []string{"example.org", "example.com"}},
+			args: args{
+				claims:       RegisteredClaims{Audience: ClaimStrings{"example.com"}},
+				cmp:          []string{"example.org", "example.com"},
+				expectAllAud: true,
+			},
+			wantErr: ErrTokenInvalidAudience,
+		},
+		{
+			name:   "fail when all audiences match but the token has extra audiences",
+			fields: fields{expectedAud: []string{"example.org", "example.com"}},
+			args: args{
+				claims:       RegisteredClaims{Audience: ClaimStrings{"example.org", "example.com", "example.net"}},
+				cmp:          []string{"example.org", "example.com"},
+				expectAllAud: true,
+			},
+			wantErr: ErrTokenInvalidAudience,
 		},
 		{
 			name:   "fail when audience not matching",

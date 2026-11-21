@@ -27,6 +27,8 @@ func TestVerifyAud(t *testing.T) {
 		{Name: "[]String Aud with match required", MapClaims: MapClaims{"aud": []string{"example.com", "example.example.com"}}, Expected: true, Required: true, Comparison: []string{"example.com"}},
 		{Name: "[]String Aud with []match any required", MapClaims: MapClaims{"aud": []string{"example.com", "example.example.com"}}, Expected: true, Required: true, Comparison: []string{"example.com", "auth.example.com"}},
 		{Name: "[]String Aud with []match all required", MapClaims: MapClaims{"aud": []string{"example.com", "example.example.com"}}, Expected: true, Required: true, Comparison: []string{"example.com", "example.example.com"}, MatchAllAud: true},
+		{Name: "[]String Aud with []match all required but extra aud in token", MapClaims: MapClaims{"aud": []string{"example.com", "example.example.com", "unexpected.example.com"}}, Expected: false, Required: true, Comparison: []string{"example.com", "example.example.com"}, MatchAllAud: true},
+		{Name: "[]String Aud with []match all required but missing aud in token", MapClaims: MapClaims{"aud": []string{"example.com"}}, Expected: false, Required: true, Comparison: []string{"example.com", "example.example.com"}, MatchAllAud: true},
 
 		// Required = false
 		{Name: "String Aud with match not required", MapClaims: MapClaims{"aud": "example.com"}, Expected: true, Required: false, Comparison: []string{"example.com"}},

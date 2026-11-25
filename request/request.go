@@ -11,7 +11,10 @@ import (
 // instead of a token string.  The Extractor interface allows you to define
 // the logic for extracting a token.  Several useful implementations are provided.
 //
-// You can provide options to modify parsing behavior
+// You can provide options to modify parsing behavior. Note that the parser
+// requires a non-empty set of valid signing methods, so the [WithParser]
+// option must be used together with [jwt.WithValidMethods]; otherwise,
+// parsing fails.
 func ParseFromRequest(req *http.Request, extractor Extractor, keyFunc jwt.Keyfunc, options ...ParseFromRequestOption) (token *jwt.Token, err error) {
 	// Create basic parser struct
 	p := &fromRequestParser{req, extractor, nil, nil}

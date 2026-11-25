@@ -85,7 +85,9 @@ func TestParseRequest(t *testing.T) {
 				r.Header.Set(k, tokenString)
 			}
 		}
-		token, err := ParseFromRequestWithClaims(r, data.extractor, jwt.MapClaims{}, keyfunc)
+		token, err := ParseFromRequest(r, data.extractor, keyfunc,
+			WithClaims(jwt.MapClaims{}),
+			WithParser(jwt.NewParser(jwt.WithValidMethods([]string{"RS256"}))))
 
 		if token == nil {
 			t.Errorf("[%v] Token was not found: %v", data.name, err)

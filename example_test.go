@@ -86,7 +86,7 @@ func ExampleParseWithClaims_customClaimsType() {
 
 	token, err := jwt.ParseWithClaims(tokenString, &MyCustomClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte("AllYourBase"), nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil {
 		log.Fatal(err)
 	} else if claims, ok := token.Claims.(*MyCustomClaims); ok {
@@ -110,7 +110,7 @@ func ExampleParseWithClaims_validationOptions() {
 
 	token, err := jwt.ParseWithClaims(tokenString, &MyCustomClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte("AllYourBase"), nil
-	}, jwt.WithLeeway(5*time.Second))
+	}, jwt.WithLeeway(5*time.Second), jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil {
 		log.Fatal(err)
 	} else if claims, ok := token.Claims.(*MyCustomClaims); ok {
@@ -149,7 +149,7 @@ func ExampleParseWithClaims_customValidation() {
 
 	token, err := jwt.ParseWithClaims(tokenString, &MyCustomClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte("AllYourBase"), nil
-	}, jwt.WithLeeway(5*time.Second))
+	}, jwt.WithLeeway(5*time.Second), jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil {
 		log.Fatal(err)
 	} else if claims, ok := token.Claims.(*MyCustomClaims); ok {
@@ -168,7 +168,7 @@ func ExampleParse_errorChecking() {
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return []byte("AllYourBase"), nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 
 	switch {
 	case token.Valid:

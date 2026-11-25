@@ -100,7 +100,7 @@ func Example_getTokenViaHTTP() {
 		// since we only use the one private key to sign the tokens,
 		// we also only use its public counter part to verify
 		return verifyKey, nil
-	})
+	}, jwt.WithValidMethods([]string{"RS256"}))
 	fatal(err)
 
 	claims := token.Claims.(*CustomClaimsExample)
@@ -192,7 +192,8 @@ func restrictedHandler(w http.ResponseWriter, r *http.Request) {
 		// since we only use the one private key to sign the tokens,
 		// we also only use its public counter part to verify
 		return verifyKey, nil
-	}, request.WithClaims(&CustomClaimsExample{}))
+	}, request.WithClaims(&CustomClaimsExample{}),
+		request.WithParser(jwt.NewParser(jwt.WithValidMethods([]string{"RS256"}))))
 
 	// If the token is missing or invalid, return error
 	if err != nil {

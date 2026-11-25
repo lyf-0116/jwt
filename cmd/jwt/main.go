@@ -4,7 +4,7 @@
 // Example usage:
 // The following will create and sign a token, then verify it and output the original claims.
 //
-//	echo {\"foo\":\"bar\"} | bin/jwt -key test/sample_key -alg RS256 -sign - | bin/jwt -key test/sample_key.pub -verify -
+//	echo {\"foo\":\"bar\"} | bin/jwt -key test/sample_key -alg RS256 -sign - | bin/jwt -key test/sample_key.pub -alg RS256 -verify -
 package main
 
 import (
@@ -132,7 +132,11 @@ func verifyToken() error {
 		fmt.Fprintf(os.Stderr, "Token len: %v bytes\n", len(tokData))
 	}
 
-	// Parse the token.  Load the key from command line option
+	// Parse the token.  Load the key from command line option.  The
+	// accepted algorithm must be explicitly restricted via the -alg flag.
+	if *flagAlg == "" {
+		return fmt.Errorf("the -alg flag is required to verify a token")
+	}
 	token, err := jwt.Parse(string(tokData), func(t *jwt.Token) (any, error) {
 		if isNone() {
 			return jwt.UnsafeAllowNoneSignatureType, nil
@@ -151,7 +155,7 @@ func verifyToken() error {
 		default:
 			return data, nil
 		}
-	})
+	}, jwt.WithValidMethods([]string{*flagAlg}))
 
 	// Print an error if we can't parse for some reason
 	if err != nil {

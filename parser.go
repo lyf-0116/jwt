@@ -12,7 +12,9 @@ import (
 const tokenDelimiter = "."
 
 type Parser struct {
-	// If populated, only these methods will be considered valid.
+	// Required. Only these methods will be considered valid. Must be
+	// populated, e.g., via the [WithValidMethods] option, otherwise parsing
+	// fails.
 	validMethods []string
 
 	// Use JSON Number format in JSON decoder.
@@ -61,20 +63,24 @@ func (p *Parser) ParseWithClaims(tokenString string, claims Claims, keyFunc Keyf
 		return token, err
 	}
 
-	// Verify signing method is in the required set
-	if p.validMethods != nil {
-		var signingMethodValid = false
-		var alg = token.Method.Alg()
-		for _, m := range p.validMethods {
-			if m == alg {
-				signingMethodValid = true
-				break
-			}
+	// Verify signing method is in the required set of valid methods. An
+	// explicit, non-empty set of valid methods is mandatory: without it, the
+	// 'alg' header alone would select the verification algorithm, which
+	// enables algorithm confusion attacks.
+	if len(p.validMethods) == 0 {
+		return token, newError("no valid methods were provided, use the WithValidMethods option", ErrTokenUnverifiable)
+	}
+	var signingMethodValid = false
+	var alg = token.Method.Alg()
+	for _, m := range p.validMethods {
+		if m == alg {
+			signingMethodValid = true
+			break
 		}
-		if !signingMethodValid {
-			// signing method is not in the listed set
-			return token, newError(fmt.Sprintf("signing method %v is invalid", alg), ErrTokenSignatureInvalid)
-		}
+	}
+	if !signingMethodValid {
+		// signing method is not in the listed set
+		return token, newError(fmt.Sprintf("signing method %v is invalid", alg), ErrTokenSignatureInvalid)
 	}
 
 	// Lookup key(s)
@@ -255,10 +261,10 @@ func (p *Parser) DecodeSegment(seg string) ([]byte, error) {
 
 // Parse parses, validates, verifies the signature and returns the parsed token.
 // keyFunc will receive the parsed token and should return the cryptographic key
-// for verifying the signature. The caller is strongly encouraged to set the
-// WithValidMethods option to validate the 'alg' claim in the token matches the
-// expected algorithm. For more details about the importance of validating the
-// 'alg' claim, see
+// for verifying the signature. The caller is required to set the
+// WithValidMethods option to validate the 'alg' claim in the token matches
+// the expected algorithm; parsing fails if no valid methods are configured.
+// For more details about the importance of validating the 'alg' claim, see
 // https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
 func Parse(tokenString string, keyFunc Keyfunc, options ...ParserOption) (*Token, error) {
 	return NewParser(options...).Parse(tokenString, keyFunc)

@@ -7,8 +7,9 @@ import "time"
 type ParserOption func(*Parser)
 
 // WithValidMethods is an option to supply algorithm methods that the parser
-// will check. Only those methods will be considered valid. It is heavily
-// encouraged to use this option in order to prevent attacks such as
+// will check. Only those methods will be considered valid. This option is
+// required: parsing fails if no valid methods are configured. This prevents
+// attacks such as
 // https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/.
 func WithValidMethods(methods []string) ParserOption {
 	return func(p *Parser) {

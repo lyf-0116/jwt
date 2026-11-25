@@ -361,7 +361,7 @@ var jwtTestData = []struct {
 		jwt.MapClaims{"foo": json.Number("123.4")},
 		true,
 		nil,
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -371,7 +371,7 @@ var jwtTestData = []struct {
 		jwt.MapClaims{"foo": "bar", "exp": json.Number(fmt.Sprintf("%v", time.Now().Unix()-100))},
 		false,
 		[]error{jwt.ErrTokenExpired},
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -381,7 +381,7 @@ var jwtTestData = []struct {
 		jwt.MapClaims{"foo": "bar", "nbf": json.Number(fmt.Sprintf("%v", time.Now().Unix()+100))},
 		false,
 		[]error{jwt.ErrTokenNotValidYet},
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -391,7 +391,7 @@ var jwtTestData = []struct {
 		jwt.MapClaims{"foo": "bar", "nbf": json.Number(fmt.Sprintf("%v", time.Now().Unix()+100)), "exp": json.Number(fmt.Sprintf("%v", time.Now().Unix()-100))},
 		false,
 		[]error{jwt.ErrTokenNotValidYet, jwt.ErrTokenExpired},
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -401,7 +401,7 @@ var jwtTestData = []struct {
 		jwt.MapClaims{"foo": "bar", "nbf": json.Number(fmt.Sprintf("%v", time.Now().Unix()+100))},
 		true,
 		nil,
-		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithoutClaimsValidation()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithoutClaimsValidation(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -413,7 +413,7 @@ var jwtTestData = []struct {
 		},
 		true,
 		nil,
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -425,7 +425,7 @@ var jwtTestData = []struct {
 		},
 		true,
 		nil,
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -437,7 +437,7 @@ var jwtTestData = []struct {
 		},
 		true,
 		nil,
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -449,7 +449,7 @@ var jwtTestData = []struct {
 		},
 		false,
 		[]error{jwt.ErrTokenMalformed},
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -461,7 +461,7 @@ var jwtTestData = []struct {
 		},
 		false,
 		[]error{jwt.ErrTokenMalformed},
-		jwt.NewParser(jwt.WithJSONNumber()),
+		jwt.NewParser(jwt.WithJSONNumber(), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -471,7 +471,7 @@ var jwtTestData = []struct {
 		&jwt.RegisteredClaims{NotBefore: jwt.NewNumericDate(time.Now().Add(time.Second * 100))},
 		false,
 		[]error{jwt.ErrTokenNotValidYet},
-		jwt.NewParser(jwt.WithLeeway(time.Minute)),
+		jwt.NewParser(jwt.WithLeeway(time.Minute), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -481,7 +481,7 @@ var jwtTestData = []struct {
 		&jwt.RegisteredClaims{NotBefore: jwt.NewNumericDate(time.Now().Add(time.Second * 100))},
 		true,
 		nil,
-		jwt.NewParser(jwt.WithLeeway(2 * time.Minute)),
+		jwt.NewParser(jwt.WithLeeway(2*time.Minute), jwt.WithValidMethods([]string{"RS256"})),
 		jwt.SigningMethodRS256,
 	},
 	{
@@ -491,7 +491,27 @@ var jwtTestData = []struct {
 		&jwt.RegisteredClaims{},
 		false,
 		[]error{jwt.ErrTokenInvalidClaims},
-		jwt.NewParser(jwt.WithExpirationRequired()),
+		jwt.NewParser(jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"RS256"})),
+		jwt.SigningMethodRS256,
+	},
+	{
+		"missing valid methods",
+		"", // autogen
+		defaultKeyFunc,
+		jwt.MapClaims{"foo": "bar"},
+		false,
+		[]error{jwt.ErrTokenUnverifiable},
+		jwt.NewParser(),
+		jwt.SigningMethodRS256,
+	},
+	{
+		"empty valid methods",
+		"", // autogen
+		defaultKeyFunc,
+		jwt.MapClaims{"foo": "bar"},
+		false,
+		[]error{jwt.ErrTokenUnverifiable},
+		jwt.NewParser(jwt.WithValidMethods([]string{})),
 		jwt.SigningMethodRS256,
 	},
 }
@@ -524,7 +544,7 @@ func TestParser_Parse(t *testing.T) {
 			var err error
 			var parser = data.parser
 			if parser == nil {
-				parser = jwt.NewParser()
+				parser = jwt.NewParser(jwt.WithValidMethods([]string{data.signingMethod.Alg()}))
 			}
 			// Figure out correct claims type
 			switch data.claims.(type) {
@@ -809,7 +829,7 @@ func TestSetPadding(t *testing.T) {
 			// Parse the token
 			var token *jwt.Token
 			var err error
-			var opts = []jwt.ParserOption{jwt.WithoutClaimsValidation()}
+			var opts = []jwt.ParserOption{jwt.WithoutClaimsValidation(), jwt.WithValidMethods([]string{data.signingMethod.Alg()})}
 
 			if data.paddedDecode {
 				opts = append(opts, jwt.WithPaddingAllowed())
@@ -852,7 +872,7 @@ func TestParser_ParseLineBreaks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// A line break is malformed, not a bad signature.
-			_, err := jwt.Parse(tt.token, defaultKeyFunc)
+			_, err := jwt.Parse(tt.token, defaultKeyFunc, jwt.WithValidMethods([]string{"RS256"}))
 			if !errors.Is(err, jwt.ErrTokenMalformed) {
 				t.Fatalf("expected %v, got %v", jwt.ErrTokenMalformed, err)
 			}
